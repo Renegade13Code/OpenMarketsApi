@@ -34,7 +34,6 @@ public class CompaniesController : ControllerBase
             {
                 AsxCode = company.AsxCode,
                 CompanyName = company.CompanyName,
-                ListingDate = company.ListingDate,
                 GicsIndustry = company.GicsIndustry
             };
 
