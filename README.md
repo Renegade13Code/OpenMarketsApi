@@ -4,25 +4,38 @@ Production-ready REST API for retrieving Australian Stock Exchange (ASX) listed 
 
 ## Overview
 
-This API provides access to ASX-listed company data by company code. It fetches real-time data from the official ASX CSV file and provides it through a secure, cached REST endpoint.
+This API provides access to ASX-listed company data by company code. It fetches data from the official ASX CSV file and implements an optimal caching strategy designed for high-performance trading applications.
 
 ## Features
 
 - **ASX Company Lookup**: Query companies by their ASX code (e.g., CBA, BHP)
 - **API Key Authentication**: Secure access using X-Api-Key header authentication
-- **Distributed Caching**: Support for both in-memory and Redis caching
+- **Optimized Caching**: Entire company list cached for 24 hours, reducing external API calls by 2000x
+- **Distributed Cache Support**: Redis for production, in-memory for development
 - **Real-time Data**: Fetches data from official ASX source
 - **Clean Architecture**: Separation of concerns with Core/Infrastructure/API layers
 - **Production Ready**: Comprehensive error handling, logging, and health checks
+- **Docker Support**: Containerized deployment with Docker Compose
 
 ## Architecture
 
-The solution follows Clean Architecture principles with three main projects:
+The solution follows Clean Architecture principles with four main projects:
 
 - **OpenMarkets.Api**: ASP.NET Core Web API layer with controllers, authentication, and middleware
 - **OpenMarkets.Core**: Business logic, domain models, and service interfaces
-- **OpenMarkets.Infrastructure**: External concerns like CSV data providers and database access
-- **OpenMarkets.Core.Tests**: Unit tests for core business logic
+- **OpenMarkets.Infrastructure**: External concerns like CSV data providers with caching decorator
+- **OpenMarkets.Core.Tests**: Unit tests for core business logic (6 tests)
+- **OpenMarkets.Infrastructure.Tests**: Unit tests for infrastructure layer (3 tests)
+
+### Caching Strategy
+
+The API uses a decorator pattern to cache the entire ASX company list (~2000 companies) with a single cache key for optimal performance:
+
+- **First request (any company)**: Fetches and parses entire CSV, caches all companies
+- **Subsequent requests (any company)**: Retrieves from cache, performs in-memory lookup
+- **Cache Duration**: 24 hours
+- **Cache Key**: `AsxCompanies_All`
+- **Benefits**: Minimal network calls, predictable performance, efficient for trading applications
 
 ## Prerequisites
 
@@ -112,9 +125,21 @@ curl -H "X-Api-Key: OM-PROD-8f9e2c7a-4b3d-4e8f-9c1a-2d5e6f7a8b9c" \
 
 ## Running Tests
 
-Run all unit tests:
+### Unit Tests (9 total)
+
 ```bash
-dotnet test OpenMarketsApi/OpenMarkets.Core.Tests/OpenMarkets.Core.Tests.csproj
+# Run all unit tests
+cd OpenMarketsApi
+dotnet test
+```
+
+### Integration Tests (9 total)
+
+```bash
+# Run integration tests (requires API to be running)
+cd OpenMarketsApi/tests/integration
+npm install
+npm test
 ```
 
 ## Docker Deployment
@@ -147,10 +172,9 @@ docker run -p 8080:8080 openmarkets-api
 
 ## API Keys
 
-Production API keys are configured in `appsettings.json`:
+API key configured in `appsettings.json`:
 
-- **Production**: `OM-PROD-8f9e2c7a-4b3d-4e8f-9c1a-2d5e6f7a8b9c`
-- **Development**: `OM-DEV-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d`
+- **API Key**: `OM-PROD-8f9e2c7a-4b3d-4e8f-9c1a-2d5e6f7a8b9c`
 
 **Security Note**: In production, store API keys in secure configuration providers (Azure Key Vault, AWS Secrets Manager, etc.) rather than in configuration files.
 
