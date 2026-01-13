@@ -1,17 +1,12 @@
 # Open Markets ASX API
 
-Production-ready REST API for retrieving Australian Stock Exchange (ASX) listed company information.
-
-## Overview
-
-This API provides access to ASX-listed company data by company code. It fetches data from the official ASX CSV file and implements an optimal caching strategy designed for high-performance trading applications.
+Production-ready REST API for retrieving ASX company information by code, with optimized caching for high-performance trading applications.
 
 ## Features
 
 - **ASX Company Lookup**: Query companies by their ASX code (e.g., CBA, BHP)
 - **API Key Authentication**: Secure access using X-Api-Key header authentication
-- **Optimized Caching**: Entire company list cached for 24 hours, reducing external API calls by 2000x
-- **Distributed Cache Support**: Redis for production, in-memory for development
+- **Distributed Caching**: Redis for optimal performance
 - **Real-time Data**: Fetches data from official ASX source
 - **Clean Architecture**: Separation of concerns with Core/Infrastructure/API layers
 - **Production Ready**: Comprehensive error handling, logging, and health checks
@@ -29,82 +24,24 @@ The solution follows Clean Architecture principles with four main projects:
 
 ### Caching Strategy
 
-The API uses a decorator pattern to cache the entire ASX company list (~2000 companies) with a single cache key for optimal performance:
-
-- **First request (any company)**: Fetches and parses entire CSV, caches all companies
-- **Subsequent requests (any company)**: Retrieves from cache, performs in-memory lookup
-- **Cache Duration**: 24 hours
-- **Cache Key**: `AsxCompanies_All`
-- **Benefits**: Minimal network calls, predictable performance, efficient for trading applications
+The entire ASX company list (~2000 companies) is cached for 24 hours on first request. Subsequent lookups retrieve from cache for optimal performance with minimal network calls.
 
 ## Prerequisites
 
-- .NET 10.0 SDK (LTS)
-- (Optional) Redis for distributed caching
-- (Optional) Docker for containerized deployment
+- Docker and Docker Compose
 
 ## Getting Started
 
-### Running Locally
-
-1. Navigate to the API project:
+1. Build and start all services:
 ```bash
-cd OpenMarketsApi/OpenMarkets.Api
+docker-compose up --build
 ```
 
-2. Run the application:
+2. The API will be available at `http://localhost:8080`
+
+3. Stop services:
 ```bash
-dotnet run
-```
-
-3. Access the API at `https://localhost:7001` or `http://localhost:5001`
-
-4. View Swagger documentation at `https://localhost:7001/swagger`
-
-### Configuration
-
-The application can be configured via `appsettings.json`:
-
-```json
-{
-  "ApiKeys": {
-    "Keys": [
-      {
-        "Key": "your-api-key-here",
-        "ClientName": "YourClientName"
-      }
-    ]
-  },
-  "Caching": {
-    "Provider": "Memory"
-  },
-  "ConnectionStrings": {
-    "Redis": "localhost:6379"
-  }
-}
-```
-
-#### Caching Configuration
-
-**In-Memory Cache** (default):
-```json
-{
-  "Caching": {
-    "Provider": "Memory"
-  }
-}
-```
-
-**Redis Cache**:
-```json
-{
-  "Caching": {
-    "Provider": "Redis"
-  },
-  "ConnectionStrings": {
-    "Redis": "your-redis-connection-string"
-  }
-}
+docker-compose down
 ```
 
 ## API Usage
@@ -115,7 +52,7 @@ All API endpoints (except `/health`) require authentication using the `X-Api-Key
 
 ```bash
 curl -H "X-Api-Key: OM-PROD-8f9e2c7a-4b3d-4e8f-9c1a-2d5e6f7a8b9c" \
-  https://localhost:7001/api/companies/CBA
+  http://localhost:8080/api/companies/CBA
 ```
 
 ### Endpoints
@@ -142,33 +79,6 @@ npm install
 npm test
 ```
 
-## Docker Deployment
-
-### Using Docker Compose
-
-1. Build and start all services:
-```bash
-docker-compose up --build
-```
-
-2. The API will be available at `http://localhost:8080`
-
-3. Stop services:
-```bash
-docker-compose down
-```
-
-### Using Docker Only
-
-1. Build the image:
-```bash
-docker build -t openmarkets-api -f OpenMarketsApi/Dockerfile .
-```
-
-2. Run the container:
-```bash
-docker run -p 8080:8080 openmarkets-api
-```
 
 ## API Keys
 
@@ -178,6 +88,24 @@ API key configured in `appsettings.json`:
 
 **Security Note**: In production, store API keys in secure configuration providers (Azure Key Vault, AWS Secrets Manager, etc.) rather than in configuration files.
 
-## License
+## Design Decisions & Trade-offs
 
-This project is provided as-is for assessment purposes.
+**Caching Strategy**: The entire ASX company list (~2000 companies) is cached for 24 hours instead of per-company caching. This reduces external API calls and ensures predictable low-latency performance for all lookups after the first request. The trade-off is higher memory usage (~200KB), but this is acceptable given the performance benefits for trading applications.
+
+**API Key Authentication**: Simple X-Api-Key header authentication was chosen over OAuth2/Cognito for B2B API-to-API communication. API keys provide minimal latency overhead for high-frequency trading requests, are simple for clients to integrate, and are standard for B2B service authentication. OAuth2/Cognito would add unnecessary complexity and token refresh overhead for server-to-server communication where clients manage their own credentials securely.
+
+**Architecture**: Decorator pattern for caching separation, Redis for distributed cache scalability, and Clean Architecture for testability and maintainability.
+
+## Assumptions
+
+- ASX CSV structure remains stable with 3 columns (Company name, ASX code, GICS industry group)
+- 24-hour cache duration is acceptable as company listings change infrequently
+- Single API instance with horizontal scaling capability is sufficient for initial load
+
+## Future Improvements
+
+- **Additional Endpoints**: List all companies, search by name, filter by industry
+- **Monitoring & Observability**: Prometheus metrics, response time tracking, alerting on failures
+- **Rate Limiting**: Per-API-key rate limits to prevent abuse
+- **API Versioning**: URL-based versioning for backward compatibility
+- **Enhanced Authentication**: API key tiers (read-only, standard, premium), key rotation mechanism
