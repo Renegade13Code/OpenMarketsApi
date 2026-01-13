@@ -39,7 +39,7 @@ public class CachedAsxCompanyService : IAsxCompanyService
                 var cachedCompany = JsonSerializer.Deserialize<AsxCompany>(cachedBytes);
                 if (cachedCompany != null)
                 {
-                    _logger.LogDebug("Cache hit for ASX code '{AsxCode}'", asxCode);
+                    _logger.LogInformation("Cache hit for ASX code '{AsxCode}'", asxCode);
                     return cachedCompany;
                 }
             }
@@ -49,14 +49,14 @@ public class CachedAsxCompanyService : IAsxCompanyService
             }
         }
 
-        _logger.LogDebug("Cache miss for ASX code '{AsxCode}'", asxCode);
+        _logger.LogInformation("Cache miss for ASX code '{AsxCode}'", asxCode);
 
         var company = await _inner.GetCompanyByCodeAsync(asxCode, cancellationToken);
 
         var serializedCompany = JsonSerializer.SerializeToUtf8Bytes(company);
         await _cache.SetAsync(cacheKey, serializedCompany, CacheOptions, cancellationToken);
 
-        _logger.LogDebug("Cached company with ASX code '{AsxCode}' for {Duration}", asxCode, CacheDuration);
+        _logger.LogInformation("Cached company with ASX code '{AsxCode}' for {Duration}", asxCode, CacheDuration);
 
         return company;
     }

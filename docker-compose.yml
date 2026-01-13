@@ -1,13 +1,37 @@
 version: '3.8'
 
 services:
-  api:
+  openmarkets-api:
     build:
       context: ./OpenMarketsApi
       dockerfile: ./Dockerfile
     container_name: openmarkets-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - Caching__Provider=Redis
+      - ConnectionStrings__Redis=openmarkets-redis:6379
     ports:
-      - "5000:8080"
-      - "5001:8081"
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - openmarkets-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: openmarkets-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - openmarkets-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  openmarkets-network:
+    driver: bridge
