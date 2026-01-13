@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./OpenMarketsApi
+      dockerfile: ./Dockerfile
+    container_name: openmarkets-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5000:8080"
+      - "5001:8081"
