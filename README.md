@@ -39,7 +39,7 @@ The API uses a decorator pattern to cache the entire ASX company list (~2000 com
 
 ## Prerequisites
 
-- .NET 8.0 SDK
+- .NET 10.0 SDK (LTS)
 - (Optional) Redis for distributed caching
 - (Optional) Docker for containerized deployment
 
